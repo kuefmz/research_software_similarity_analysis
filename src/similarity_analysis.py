@@ -10,39 +10,59 @@ from sentence_transformers import SentenceTransformer
 import Levenshtein
 import numpy as np
 import torch
+import re
+import string
+from nltk.corpus import stopwords
 
 
-def compute_tfidf(text_list, batch_size=32):
-    vectorizer = TfidfVectorizer()
-
-    # First, fit the vectorizer on the entire text_list to ensure consistent feature space
-    vectorizer.fit(text_list)
-    embeddings = []
-
-    # Process in batches
-    for i in range(0, len(text_list), batch_size):
-        batch = text_list[i:i + batch_size]
-        # Use the pre-fitted vectorizer to transform the batch
-        batch_vectors = vectorizer.transform(batch)
-        batch_cosine_sim = cosine_similarity(batch_vectors)
-        embeddings.append(batch_cosine_sim)
-
-    # Concatenate all the batch results
-    return np.vstack(embeddings)
+model_bert = SentenceTransformer('all-MiniLM-L6-v2')
+model_clip = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 
 
-def computer_tfidf_no_batches(text_list):
-    vectorizer = TfidfVectorizer()
+print('Load data')
+with open('data/filtered_dataset.json', 'r') as f:
+    papers_data = json.load(f)
+
+df = pd.DataFrame(papers_data)
+print(f'Number of samples: {df.shape[1]}')
+
+titles = df['paper_title'].tolist()
+abstracts = df['abstract'].tolist()
+readmes = df['github_readme_content'].tolist()
+somef = df['somef_descriptions'].tolist()
+
+print('Load data')
+with open('data/filtered_data_complete.json', 'r') as f:
+    papers_data_complete = json.load(f)
+df_complete = pd.DataFrame(papers_data_complete)
+print(f'Number of samples: {df.shape[1]}')
+github_title = df_complete['github_repo_title'].tolist()
+github_keywords = df_complete['github_keywords'].tolist()
+
+
+def preprocess_text(text):
+    # Remove punctuation, numbers, and lower the text
+    text = re.sub(f"[{string.punctuation}0-9]", " ", text.lower())
+    # Remove stopwords
+    stop_words = set(stopwords.words('english'))
+    text = " ".join([word for word in text.split() if word not in stop_words])
+    return text
+
+
+def compute_tfidf(text_list):
+    # Preprocess each text in the list
+    text_list = [preprocess_text(text) for text in text_list]
+    
+    # Define the TF-IDF vectorizer with tuning
+    vectorizer = TfidfVectorizer(min_df=2, max_df=0.95, ngram_range=(1, 2), stop_words='english', max_features=3000)
+    
     vectors = vectorizer.fit_transform(text_list)
-    cosine_sim = cosine_similarity(vectors)
-    return cosine_sim
-
+    return vectors.toarray()
 
 def compute_sentence_embeddings(text_list, batch_size=256):
-    model_bert = SentenceTransformer('all-MiniLM-L6-v2')
     embeddings = []
-
-    # Process in batches
+    text_list = [text.strip() for text in text_list]
 
     for i in range(0, len(text_list), batch_size):
         print(i)
@@ -55,24 +75,17 @@ def compute_sentence_embeddings(text_list, batch_size=256):
 
 
 def compute_clip_embeddings(text_list, batch_size=256):
-    model_clip = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
     embeddings = []
-
-    # Process in batches
     for i in range(0, len(text_list), batch_size):
-        print(i)
         batch = text_list[i:i + batch_size]
         inputs = tokenizer(batch, padding=True, truncation=True, return_tensors="pt")
         with torch.no_grad():
             batch_embeddings = model_clip.get_text_features(**inputs).cpu().numpy()
         embeddings.append(batch_embeddings)
-
-    # Concatenate all batch embeddings
     return np.vstack(embeddings)
 
 
-def reduce_dimensionality(embeddings, method='pca'):
+def reduce_dimensionality(embeddings, method):
     if method == 'pca':
         pca = PCA(n_components=2)
         reduced = pca.fit_transform(embeddings)
@@ -104,79 +117,135 @@ def plot_embeddings(embeddings, color_by, title, color_map):
     filename = title.replace(' ', '_')
     plt.savefig(f'plots/{filename}.png')
 
-
-print('Load data')
-with open('data/paper_title_abstract.json', 'r') as f:
-    papers_data = json.load(f)
-
-df = pd.DataFrame(papers_data)
-
-titles = df['paper_title'].tolist()
-abstracts = df['abstract'].tolist()
-
-
-print('Compute TF-IDF')
-if False:
+# Title
+if True:
     titles_tfidf = compute_tfidf(titles)
-    reduced_titles_tfids = reduce_dimensionality(titles_tfidf)
-    plot_embeddings(reduced_titles_tfids, df['main_collection_area'], 'TF-IDF Embeddings (Titles) - Colored by Area', 'plasma')
-
-if False:
-    abstracts_tfidf = compute_tfidf(abstracts)
-    reduced_abstracts_tfidf = reduce_dimensionality(abstracts_tfidf)
-    plot_embeddings(reduced_abstracts_tfidf, df['main_collection_area'], 'TF-IDF Embeddings (Abstracts) - Colored by Area', 'plasma')
-
-
-print('BERT')
-if False:
-    sentence_embeddings_titles = compute_sentence_embeddings(titles)
-    reduced_embeddings_titles = reduce_dimensionality(sentence_embeddings_titles)
-    plot_embeddings(reduced_embeddings_titles, df['main_collection_area'], 'Sentence-BERT Embeddings (Titles) - Colored by Area', 'plasma')
-
-if False:
-    sentence_embeddings_abstracts = compute_sentence_embeddings(abstracts)
-    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts)
-    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], 'Sentence-BERT Embeddings (Abstracts) - Colored by Area', 'plasma')
-
-
-print('CLIP')
-if False:
-    clip_embeddings_titles = compute_clip_embeddings(titles)
-    reduced_clip_titles = reduce_dimensionality(clip_embeddings_titles)
-    plot_embeddings(reduced_clip_titles, df['main_collection_area'], 'CLIP Embeddings (Titles) - Colored by Area', 'plasma')
-
-if False:
-    clip_embeddings_abstracts = compute_clip_embeddings(abstracts)
-    reduced_clip_abstracts = reduce_dimensionality(clip_embeddings_abstracts)
-    plot_embeddings(reduced_clip_abstracts, df['main_collection_area'], 'CLIP Embeddings (Abstracts) - Colored by Area', 'plasma')
-
-
-print('Load data')
-with open('data/merged_papers_methods_with_github_readmes.json', 'r') as f:
-    papers_data = json.load(f)
-
-df = pd.DataFrame(papers_data)
-
-print(df.shape)
-df.dropna(inplace=True)
-df.drop_duplicates(inplace=True)
-print(df.shape)
-
-print(df['main_collection_area'].value_counts())
-
-readmes = df['github_readme_content'].tolist()
+    reduced_titles_tfids = reduce_dimensionality(titles_tfidf, method='tsne')
+    plot_embeddings(reduced_titles_tfids, df['main_collection_area'], f'TF-IDF Embeddings (Titles #{len(titles)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_titles_tfids = reduce_dimensionality(titles_tfidf, method='pca')
+    plot_embeddings(reduced_titles_tfids, df['main_collection_area'], f'TF-IDF Embeddings (Titles #{len(titles)} ) - PCA - Colored by Area', 'plasma')
 
 if True:
-    readmes_tfidf = computer_tfidf_no_batches(readmes)
-    reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf)
-    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], 'TF-IDF Embeddings (READMEs) - Colored by Area', 'plasma')
+    sentence_embeddings_titles = compute_sentence_embeddings(titles)
+    reduced_embeddings_titles = reduce_dimensionality(sentence_embeddings_titles, method='tsne')
+    plot_embeddings(reduced_embeddings_titles, df['main_collection_area'], f'Sentence-BERT Embeddings (Titles #{len(titles)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_embeddings_titles = reduce_dimensionality(sentence_embeddings_titles, method='pca')
+    plot_embeddings(reduced_embeddings_titles, df['main_collection_area'], f'Sentence-BERT Embeddings (Titles #{len(titles)} ) - PCA - Colored by Area', 'plasma')
+
+if True:
+    clip_embeddings_titles = compute_clip_embeddings(titles)
+    reduced_clip_titles = reduce_dimensionality(clip_embeddings_titles, method='tsne')
+    plot_embeddings(reduced_clip_titles, df['main_collection_area'], f'CLIP Embeddings (Titles #{len(titles)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_clip_titles = reduce_dimensionality(clip_embeddings_titles, method='pca')
+    plot_embeddings(reduced_clip_titles, df['main_collection_area'], f'CLIP Embeddings (Titles #{len(titles)} ) - PCA - Colored by Area', 'plasma')
+
+# Abstract
+if True:
+    abstracts_tfidf = compute_tfidf(abstracts)
+    reduced_abstracts_tfidf = reduce_dimensionality(abstracts_tfidf, method='tsne')
+    plot_embeddings(reduced_abstracts_tfidf, df['main_collection_area'], f'TF-IDF Embeddings (Abstracts #{len(abstracts)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_abstracts_tfidf = reduce_dimensionality(abstracts_tfidf, method='pca')
+    plot_embeddings(reduced_abstracts_tfidf, df['main_collection_area'], f'TF-IDF Embeddings (Abstracts #{len(abstracts)} ) - PCA - Colored by Area', 'plasma')
+
+if True:
+    sentence_embeddings_abstracts = compute_sentence_embeddings(abstracts)
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='tsne')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (Abstracts #{len(abstracts)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='pca')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (Abstracts #{len(abstracts)} ) - PCA - Colored by Area', 'plasma')
+
+if True:
+    clip_embeddings_abstracts = compute_clip_embeddings(abstracts)
+    reduced_clip_abstracts = reduce_dimensionality(clip_embeddings_abstracts, method='tsne')
+    plot_embeddings(reduced_clip_abstracts, df['main_collection_area'], f'CLIP Embeddings (Abstracts #{len(abstracts)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_clip_abstracts = reduce_dimensionality(clip_embeddings_abstracts, method='pca')
+    plot_embeddings(reduced_clip_abstracts, df['main_collection_area'], f'CLIP Embeddings (Abstracts #{len(abstracts)} ) - PCA - Colored by Area', 'plasma')
+
+# Readme
+if True:
+    readmes_tfidf = compute_tfidf(readmes)
+    reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='tsne')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], f'TF-IDF Embeddings (READMEs #{len(readmes)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='pca')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], f'TF-IDF Embeddings (READMEs #{len(readmes)} ) - PCA - Colored by Area', 'plasma')
 
 if True:
     sentence_embeddings_abstracts = compute_sentence_embeddings(readmes)
-    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts)
-    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], 'Sentence-BERT Embeddings (READMEs) - Colored by Area', 'plasma')
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='tsne')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (READMEs #{len(readmes)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='pca')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (READMEs #{len(readmes)} ) - PCA - Colored by Area', 'plasma')
 
 if True:
     clip_embeddings_readmes = compute_clip_embeddings(readmes)
-    reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes)
-    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], 'CLIP Embeddings (READMEs) - Colored by Area', 'plasma')
+    reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='tsne')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], f'CLIP Embeddings (READMEs #{len(readmes)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='pca')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], f'CLIP Embeddings (READMEs #{len(readmes)} ) - PCA - Colored by Area', 'plasma')
+
+# Somef
+if True:
+    readmes_tfidf = compute_tfidf(somef)
+    reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='tsne')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], f'TF-IDF Embeddings (SOMEF descriptions #{len(somef)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='pca')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], f'TF-IDF Embeddings (SOMEF descriptions #{len(somef)} ) - PCA - Colored by Area', 'plasma')
+
+if True:
+    sentence_embeddings_abstracts = compute_sentence_embeddings(somef)
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='tsne')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (SOMEF descriptions #{len(somef)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='pca')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (SOMEF descriptions #{len(somef)} ) - PCA - Colored by Area', 'plasma')
+
+if True:
+    clip_embeddings_readmes = compute_clip_embeddings(somef)
+    reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='tsne')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], f'CLIP Embeddings (SOMEF descriptions #{len(somef)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='pca')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], f'CLIP Embeddings (SOMEF descriptions #{len(somef)} ) - PCA - Colored by Area', 'plasma')
+
+# Github Titles
+if True:
+    readmes_tfidf = compute_tfidf(github_title)
+    reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='tsne')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], f'TF-IDF Embeddings (GitHub Titles #{len(github_title)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='pca')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], f'TF-IDF Embeddings (GitHub Titles #{len(github_title)} ) - PCA - Colored by Area', 'plasma')
+
+if True:
+    sentence_embeddings_abstracts = compute_sentence_embeddings(github_title)
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='tsne')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (GitHub Titles #{len(github_title)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='pca')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (GitHub Titles #{len(github_title)} ) - PCA - Colored by Area', 'plasma')
+
+if True:
+    clip_embeddings_readmes = compute_clip_embeddings(github_title)
+    reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='tsne')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], f'CLIP Embeddings (GitHub Titles #{len(github_title)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='pca')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], f'CLIP Embeddings (GitHub Titles #{len(github_title)} ) - PCA - Colored by Area', 'plasma')
+
+# Github Keywords
+if True:
+    readmes_tfidf = compute_tfidf(github_keywords)
+    reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='tsne')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], f'TF-IDF Embeddings (GitHub Keywords #{len(github_keywords)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='pca')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], f'TF-IDF Embeddings (GitHub Keywords #{len(github_keywords)} ) - PCA - Colored by Area', 'plasma')
+
+if True:
+    sentence_embeddings_abstracts = compute_sentence_embeddings(github_keywords)
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='tsne')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (GitHub Keywords #{len(github_keywords)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='pca')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], f'Sentence-BERT Embeddings (GitHub Keywords #{len(github_keywords)} ) - PCA - Colored by Area', 'plasma')
+
+if True:
+    clip_embeddings_readmes = compute_clip_embeddings(github_keywords)
+    reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='tsne')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], f'CLIP Embeddings (GitHub Keywords #{len(github_keywords)} ) - TSNE - Colored by Area', 'plasma')
+    reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='pca')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], f'CLIP Embeddings (GitHub Keywords #{len(github_keywords)} ) - PCA - Colored by Area', 'plasma')
+
