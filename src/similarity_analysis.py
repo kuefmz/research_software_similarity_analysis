@@ -55,149 +55,151 @@ def plot_embeddings(embeddings, color_by, title, color_map):
     categories = pd.Categorical(color_by)
     category_codes = categories.codes
     category_labels = categories.categories
-    
     # Create scatter plot
-    scatter = plt.scatter(embeddings[:, 0], embeddings[:, 1], c=category_codes, cmap=color_map)
-
+    scatter = plt.scatter(embeddings[:, 0], embeddings[:, 1], c=category_codes, cmap=color_map, marker='.')
     plt.title(title)
-    
+    plt.xlabel("Dimension 1")
+    plt.ylabel("Dimension 2")
     # Create a custom legend
     unique_categories = np.unique(category_codes)
-    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=scatter.cmap(scatter.norm(code)), markersize=10) 
-                       for code in unique_categories]
-    plt.legend(legend_elements, category_labels, title="Category", loc="upper right")
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=scatter.cmap(scatter.norm(code)), markersize=10) for code in unique_categories]
+    # Set ticks inside the plot and make them thicker
+    plt.tick_params(axis='both', direction='in', which='both', width=1)
+    
+    filename = title.lower().replace(' ', '_')
+    plt.legend(legend_elements, category_labels, title="Research area", loc="upper right")
+    plt.savefig(f"plots/rq2/{filename}.svg", format="svg")
+    plt.savefig(f"plots/rq2/{filename}.png", format="png", dpi=300)
+    plt.savefig(f"plots/rq2/{filename}.pdf", format="pdf")
 
-    filename = title.replace(' ', '_')
-    plt.savefig(f'plots/{filename}.png')
 
-
-if False:
+if True:
     titles_tfidf = compute_tfidf(titles)
     reduced_titles_tfids = reduce_dimensionality(titles_tfidf, method='tsne')
-    plot_embeddings_plotly(reduced_titles_tfids, df['main_collection_area'], 'TF-IDF Embeddings (T-SNE) - Paper Titles', 'plasma')
+    plot_embeddings(reduced_titles_tfids, df['main_collection_area'], 'Reference Research Publication Titles — TF-IDF Embeddings — t-SNE', 'plasma')
     reduced_titles_tfids = reduce_dimensionality(titles_tfidf, method='pca')
-    plot_embeddings_plotly(reduced_titles_tfids, df['main_collection_area'], 'TF-IDF Embeddings (PCA) - Paper Titles', 'plasma')
+    plot_embeddings(reduced_titles_tfids, df['main_collection_area'], 'Reference Research Publication Titles — TF-IDF Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     sentence_embeddings_titles = compute_sentence_embeddings(titles)
     reduced_embeddings_titles = reduce_dimensionality(sentence_embeddings_titles, method='tsne')
-    plot_embeddings(reduced_embeddings_titles, df['main_collection_area'], 'Sentence-BERT Embeddings (T-SNE) - Paper Titles', 'plasma')
+    plot_embeddings(reduced_embeddings_titles, df['main_collection_area'], 'Reference Research Publication Titles — Sentence-BERT Embeddings — t-SNE', 'plasma')
     reduced_embeddings_titles = reduce_dimensionality(sentence_embeddings_titles, method='pca')
-    plot_embeddings(reduced_embeddings_titles, df['main_collection_area'], 'Sentence-BERT Embeddings (PCA) - Paper Titles', 'plasma')
+    plot_embeddings(reduced_embeddings_titles, df['main_collection_area'], 'Reference Research Publication Titles — Sentence-BERT Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     clip_embeddings_titles = compute_clip_embeddings(titles)
     reduced_clip_titles = reduce_dimensionality(clip_embeddings_titles, method='tsne')
-    plot_embeddings(reduced_clip_titles, df['main_collection_area'], 'CLIP Embeddings (T-SNE) - Paper Titles', 'plasma')
+    plot_embeddings(reduced_clip_titles, df['main_collection_area'], 'Reference Research Publication Titles — CLIP Embeddings — t-SNE', 'plasma')
     reduced_clip_titles = reduce_dimensionality(clip_embeddings_titles, method='pca')
-    plot_embeddings(reduced_clip_titles, df['main_collection_area'], 'CLIP Embeddings (PCA) - Paper Titles', 'plasma')
+    plot_embeddings(reduced_clip_titles, df['main_collection_area'], 'Reference Research Publication Titles — CLIP Embeddings — PCA', 'plasma')
 
 # Abstract
-if False:
+if True:
     abstracts_tfidf = compute_tfidf(abstracts)
     reduced_abstracts_tfidf = reduce_dimensionality(abstracts_tfidf, method='tsne')
-    plot_embeddings(reduced_abstracts_tfidf, df['main_collection_area'], 'TF-IDF Embeddings (T-SNE) - Abstracts', 'plasma')
+    plot_embeddings(reduced_abstracts_tfidf, df['main_collection_area'], 'Reference Research Publication Abstracts — TF-IDF Embeddings — t-SNE', 'plasma')
     reduced_abstracts_tfidf = reduce_dimensionality(abstracts_tfidf, method='pca')
-    plot_embeddings(reduced_abstracts_tfidf, df['main_collection_area'], 'TF-IDF Embeddings (PCA) - Abstracts', 'plasma')
+    plot_embeddings(reduced_abstracts_tfidf, df['main_collection_area'], 'Reference Research Publication Abstracts — TF-IDF Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     sentence_embeddings_abstracts = compute_sentence_embeddings(abstracts)
     reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='tsne')
-    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], 'Sentence-BERT Embeddings (T-SNE) - Abstracts', 'plasma')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], 'Reference Research Publication Abstracts — Sentence-BERT Embeddings — t-SNE', 'plasma')
     reduced_embeddings_abstracts = reduce_dimensionality(sentence_embeddings_abstracts, method='pca')
-    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], 'Sentence-BERT Embeddings (PCA) - Abstracts', 'plasma')
+    plot_embeddings(reduced_embeddings_abstracts, df['main_collection_area'], 'Reference Research Publication Abstracts — Sentence-BERT Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     clip_embeddings_abstracts = compute_clip_embeddings(abstracts)
     reduced_clip_abstracts = reduce_dimensionality(clip_embeddings_abstracts, method='tsne')
-    plot_embeddings(reduced_clip_abstracts, df['main_collection_area'], 'CLIP Embeddings (T-SNE) - Abstracts', 'plasma')
+    plot_embeddings(reduced_clip_abstracts, df['main_collection_area'], 'Reference Research Publication Abstracts — CLIP Embeddings — t-SNE', 'plasma')
     reduced_clip_abstracts = reduce_dimensionality(clip_embeddings_abstracts, method='pca')
-    plot_embeddings(reduced_clip_abstracts, df['main_collection_area'], 'CLIP Embeddings (PCA) - Abstracts', 'plasma')
+    plot_embeddings(reduced_clip_abstracts, df['main_collection_area'], 'Reference Research Publication Abstracts — CLIP Embeddings — PCA', 'plasma')
 
-# Readme
-if False:
+# Repository READMEs
+if True:
     readmes_tfidf = compute_tfidf(readmes)
     reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='tsne')
-    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], 'TF-IDF Embeddings (T-SNE) - READMEs', 'plasma')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], 'Repository READMEs — TF-IDF Embeddings — t-SNE', 'plasma')
     reduced_readmes_tfids = reduce_dimensionality(readmes_tfidf, method='pca')
-    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], 'TF-IDF Embeddings (PCA) - READMEs', 'plasma')
+    plot_embeddings(reduced_readmes_tfids, df['main_collection_area'], 'Repository READMEs — TF-IDF Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     sentence_embeddings_readmes = compute_sentence_embeddings(readmes)
     reduced_embeddings_readmes = reduce_dimensionality(sentence_embeddings_readmes, method='tsne')
-    plot_embeddings(reduced_embeddings_readmes, df['main_collection_area'], 'Sentence-BERT Embeddings (T-SNE) - READMEs', 'plasma')
+    plot_embeddings(reduced_embeddings_readmes, df['main_collection_area'], 'Repository READMEs — Sentence-BERT Embeddings — t-SNE', 'plasma')
     reduced_embeddings_readmes = reduce_dimensionality(sentence_embeddings_readmes, method='pca')
-    plot_embeddings(reduced_embeddings_readmes, df['main_collection_area'], 'Sentence-BERT Embeddings (PCA) - READMEs', 'plasma')
+    plot_embeddings(reduced_embeddings_readmes, df['main_collection_area'], 'Repository READMEs — Sentence-BERT Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     clip_embeddings_readmes = compute_clip_embeddings(readmes)
     reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='tsne')
-    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], 'CLIP Embeddings (T-SNE) - READMEs', 'plasma')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], 'Repository READMEs — CLIP Embeddings — t-SNE', 'plasma')
     reduced_clip_readmes = reduce_dimensionality(clip_embeddings_readmes, method='pca')
-    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], 'CLIP Embeddings (PCA) - READMEs', 'plasma')
+    plot_embeddings(reduced_clip_readmes, df['main_collection_area'], 'Repository READMEs — CLIP Embeddings — PCA', 'plasma')
 
-# Somef
-if False:
+# Repository
+if True:
     somef_tfidf = compute_tfidf(somef)
     reduced_somef_tfids = reduce_dimensionality(somef_tfidf, method='tsne')
-    plot_embeddings(reduced_somef_tfids, df_somef['main_collection_area'], 'TF-IDF Embeddings (T-SNE) - SOMEF Descriptions', 'plasma')
+    plot_embeddings(reduced_somef_tfids, df_somef['main_collection_area'], 'Repository Descriptions — TF-IDF Embeddings — t-SNE', 'plasma')
     reduced_somef_tfids = reduce_dimensionality(somef_tfidf, method='pca')
-    plot_embeddings(reduced_somef_tfids, df_somef['main_collection_area'], 'TF-IDF Embeddings (PCA) - SOMEF Descriptions', 'plasma')
+    plot_embeddings(reduced_somef_tfids, df_somef['main_collection_area'], 'Repository Descriptions — TF-IDF Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     sentence_embeddings_somef = compute_sentence_embeddings(somef)
     reduced_embeddings_somef = reduce_dimensionality(sentence_embeddings_somef, method='tsne')
-    plot_embeddings(reduced_embeddings_somef, df_somef['main_collection_area'], 'Sentence-BERT Embeddings (T-SNE) - SOMEF Descriptions', 'plasma')
+    plot_embeddings(reduced_embeddings_somef, df_somef['main_collection_area'], 'Repository Descriptions — Sentence-BERT Embeddings — t-SNE', 'plasma')
     reduced_embeddings_somef = reduce_dimensionality(sentence_embeddings_somef, method='pca')
-    plot_embeddings(reduced_embeddings_somef, df_somef['main_collection_area'], 'Sentence-BERT Embeddings (PCA) - SOMEF Descriptions', 'plasma')
+    plot_embeddings(reduced_embeddings_somef, df_somef['main_collection_area'], 'Repository Descriptions — Sentence-BERT Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     clip_embeddings_somef = compute_clip_embeddings(somef)
     reduced_clip_somef = reduce_dimensionality(clip_embeddings_somef, method='tsne')
-    plot_embeddings(reduced_clip_somef, df_somef['main_collection_area'], 'CLIP Embeddings (T-SNE) - SOMEF Descriptions', 'plasma')
+    plot_embeddings(reduced_clip_somef, df_somef['main_collection_area'], 'Repository Descriptions — CLIP Embeddings — t-SNE', 'plasma')
     reduced_clip_somef = reduce_dimensionality(clip_embeddings_somef, method='pca')
-    plot_embeddings(reduced_clip_somef, df_somef['main_collection_area'], 'CLIP Embeddings (PCA) - SOMEF Descriptions', 'plasma')
+    plot_embeddings(reduced_clip_somef, df_somef['main_collection_area'], 'Repository Descriptions — CLIP Embeddings — PCA', 'plasma')
 
-# Github Titles
-if False:
+# Repository Titles
+if True:
     github_titles_tfidf = compute_tfidf(github_title)
     reduced_github_titles_tfids = reduce_dimensionality(github_titles_tfidf, method='tsne')
-    plot_embeddings(reduced_github_titles_tfids, df_complete['main_collection_area'], 'TF-IDF Embeddings (T-SNE) - GitHub Titles', 'plasma')
+    plot_embeddings(reduced_github_titles_tfids, df_complete['main_collection_area'], 'Repository Titles — TF-IDF Embeddings — t-SNE', 'plasma')
     reduced_github_titles_tfids = reduce_dimensionality(github_titles_tfidf, method='pca')
-    plot_embeddings(reduced_github_titles_tfids, df_complete['main_collection_area'], 'TF-IDF Embeddings (PCA) - GitHub Titles', 'plasma')
+    plot_embeddings(reduced_github_titles_tfids, df_complete['main_collection_area'], 'Repository Titles — TF-IDF Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     sentence_embeddings_github_titles = compute_sentence_embeddings(github_title)
     reduced_embeddings_github_titles = reduce_dimensionality(sentence_embeddings_github_titles, method='tsne')
-    plot_embeddings(reduced_embeddings_github_titles, df_complete['main_collection_area'], 'Sentence-BERT Embeddings (T-SNE) - GitHub Titles', 'plasma')
+    plot_embeddings(reduced_embeddings_github_titles, df_complete['main_collection_area'], 'Repository Titles — Sentence-BERT Embeddings — t-SNE', 'plasma')
     reduced_embeddings_github_titles = reduce_dimensionality(sentence_embeddings_github_titles, method='pca')
-    plot_embeddings(reduced_embeddings_github_titles, df_complete['main_collection_area'], 'Sentence-BERT Embeddings (PCA) - GitHub Titles', 'plasma')
+    plot_embeddings(reduced_embeddings_github_titles, df_complete['main_collection_area'], 'Repository Titles — Sentence-BERT Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     clip_embeddings_github_titles = compute_clip_embeddings(github_title)
     reduced_clip_github_titles = reduce_dimensionality(clip_embeddings_github_titles, method='tsne')
-    plot_embeddings(reduced_clip_github_titles, df_complete['main_collection_area'], 'CLIP Embeddings (T-SNE) - GitHub Titles', 'plasma')
+    plot_embeddings(reduced_clip_github_titles, df_complete['main_collection_area'], 'Repository Titles — CLIP Embeddings — t-SNE', 'plasma')
     reduced_clip_github_titles = reduce_dimensionality(clip_embeddings_github_titles, method='pca')
-    plot_embeddings(reduced_clip_github_titles, df_complete['main_collection_area'], 'CLIP Embeddings (PCA) - GitHub Titles', 'plasma')
+    plot_embeddings(reduced_clip_github_titles, df_complete['main_collection_area'], 'Repository Titles — CLIP Embeddings — PCA', 'plasma')
 
-# Github Keywords
+# Repository Keywords
 if True:
     github_keywords_tfidf = compute_tfidf(github_keywords)
     reduced_github_keywords_tfids = reduce_dimensionality(github_keywords_tfidf, method='tsne')
-    plot_embeddings(reduced_github_keywords_tfids, df_complete['main_collection_area'], 'TF-IDF Embeddings (T-SNE) - GitHub Keywords', 'plasma')
+    plot_embeddings(reduced_github_keywords_tfids, df_complete['main_collection_area'], 'Repository Keywords — TF-IDF Embeddings — t-SNE', 'plasma')
     reduced_github_keywords_tfids = reduce_dimensionality(github_keywords_tfidf, method='pca')
-    plot_embeddings(reduced_github_keywords_tfids, df_complete['main_collection_area'], 'TF-IDF Embeddings (PCA) - GitHub Keywords', 'plasma')
+    plot_embeddings(reduced_github_keywords_tfids, df_complete['main_collection_area'], 'Repository Keywords — TF-IDF Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     sentence_embeddings_github_keywords = compute_sentence_embeddings(github_keywords)
     reduced_embeddings_github_keywords = reduce_dimensionality(sentence_embeddings_github_keywords, method='tsne')
-    plot_embeddings(reduced_embeddings_github_keywords, df_complete['main_collection_area'], 'Sentence-BERT Embeddings (T-SNE) - GitHub Keywords', 'plasma')
+    plot_embeddings(reduced_embeddings_github_keywords, df_complete['main_collection_area'], 'Repository Keywords — Sentence-BERT Embeddings — t-SNE', 'plasma')
     reduced_embeddings_github_keywords = reduce_dimensionality(sentence_embeddings_github_keywords, method='pca')
-    plot_embeddings(reduced_embeddings_github_keywords, df_complete['main_collection_area'], 'Sentence-BERT Embeddings (PCA) - GitHub Keywords', 'plasma')
+    plot_embeddings(reduced_embeddings_github_keywords, df_complete['main_collection_area'], 'Repository Keywords — Sentence-BERT Embeddings — PCA', 'plasma')
 
-if False:
+if True:
     clip_embeddings_github_keywords = compute_clip_embeddings(github_keywords)
     reduced_clip_github_keywords = reduce_dimensionality(clip_embeddings_github_keywords, method='tsne')
-    plot_embeddings(reduced_clip_github_keywords, df_complete['main_collection_area'], 'CLIP Embeddings (T-SNE) - GitHub Keywords', 'plasma')
+    plot_embeddings(reduced_clip_github_keywords, df_complete['main_collection_area'], 'Repository Keywords — CLIP Embeddings — t-SNE', 'plasma')
     reduced_clip_github_keywords = reduce_dimensionality(clip_embeddings_github_keywords, method='pca')
-    plot_embeddings(reduced_clip_github_keywords, df_complete['main_collection_area'], 'CLIP Embeddings (PCA) - GitHub Keywords', 'plasma')
+    plot_embeddings(reduced_clip_github_keywords, df_complete['main_collection_area'], 'Repository Keywords — CLIP Embeddings — PCA', 'plasma')
