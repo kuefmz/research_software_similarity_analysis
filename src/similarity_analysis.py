@@ -83,7 +83,7 @@ def plot_embeddings(embeddings, color_by, title, color_map):
 
     # Create scatter plot
     scatter = plt.scatter(embeddings[:, 0], embeddings[:, 1], c=category_codes, cmap=color_map, marker='.')
-    plt.title(title, fontsize=26)
+    #plt.title(title, fontsize=26)
     plt.xlabel("Dimension 1", fontsize=22)
     plt.ylabel("Dimension 2", fontsize=22)
 
